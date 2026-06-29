@@ -6,7 +6,14 @@ import { LoginForm } from "./LoginForm";
 export const dynamic = "force-dynamic";
 
 export default async function LoginPage() {
-  const accounts = await listLoginAccounts();
+  // Never let a transient DB issue crash the login screen — the form still
+  // works for manual sign-in; the one-click demo chips just won't appear.
+  let accounts: Awaited<ReturnType<typeof listLoginAccounts>> = [];
+  try {
+    accounts = await listLoginAccounts();
+  } catch {
+    accounts = [];
+  }
 
   return (
     <div className="flex min-h-screen">

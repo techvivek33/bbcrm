@@ -1,0 +1,531 @@
+// ============================================================================
+//  Agency Operating System (AOS) — Data Model
+//  One schema powering: Brand CRM, Creator CRM, Campaigns, Tasks, Content
+//  Approvals, Payments, Invoices, Contracts, Portals, Knowledge Center & more.
+//
+//  Dev provider is SQLite (zero setup). For production, change provider to
+//  "postgresql" and update DATABASE_URL. SQLite has no native enums or scalar
+//  lists, so list-like fields are stored as JSON strings (see lib/serialize.ts)
+//  and "enum-like" fields are plain strings validated by constants in lib/enums.ts.
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------------
+//  TEAM & ACCESS (Module 15: Team Management + auth for all three portals)
+// ----------------------------------------------------------------------------
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String?
+  // role: ADMIN | CAMPAIGN_MANAGER | TALENT_MANAGER | FINANCE | BRAND_POC | CREATOR
+  role         String   @default("CAMPAIGN_MANAGER")
+  avatarColor  String   @default("#6366f1")
+  title        String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Optional links when the user IS a brand contact or a creator (portal logins)
+  brandId   String?
+  brand     Brand?   @relation(fields: [brandId], references: [id])
+  creatorId String?
+  creator   Creator? @relation(fields: [creatorId], references: [id])
+
+  assignedTasks    Task[]            @relation("TaskAssignee")
+  loggedActivities Activity[]
+  notes            Note[]
+  reviews          ContentReview[]
+}
+
+// ----------------------------------------------------------------------------
+//  BRAND CRM (Modules 2, 14, 18)
+// ----------------------------------------------------------------------------
+model Brand {
+  id                 String   @id @default(cuid())
+  companyName        String
+  industry           String?
+  website            String?
+  logoColor          String   @default("#0ea5e9")
+  contactPerson      String?
+  designation        String?
+  email              String?
+  phone              String?
+  linkedin           String?
+  preferredCategories String? // JSON array of category strings
+  budgetRangeMin     Int?
+  budgetRangeMax     Int?
+  paymentTerms       String?  // e.g. "Net 30"
+  notes              String?
+  // status: LEAD | ACTIVE | DORMANT | CHURNED
+  status             String   @default("LEAD")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  campaigns  Campaign[]
+  activities Activity[]
+  payments   Payment[]
+  invoices   Invoice[]
+  contracts  Contract[]
+  noteItems  Note[]
+  portalUsers User[]
+  proposals  Proposal[]
+
+  @@index([status])
+}
+
+// ----------------------------------------------------------------------------
+//  INFLUENCER / CREATOR CRM (Modules 3, 4, 8)
+// ----------------------------------------------------------------------------
+model Creator {
+  id            String   @id @default(cuid())
+  name          String
+  email         String?
+  phone         String?
+  avatarColor   String   @default("#f59e0b")
+  location      String?
+  city          String?
+  state         String?
+  gender        String?  // MALE | FEMALE | OTHER
+  languages     String?  // JSON array
+  categories    String?  // JSON array (Gaming, Comedy, Lifestyle, Finance, Tech, ...)
+  bio           String?
+
+  // Aggregate audience snapshot (denormalized for fast discovery/filtering)
+  totalFollowers Int     @default(0)
+  avgViews       Int     @default(0)
+  engagementRate Float   @default(0)
+
+  // Commercials
+  basePrice     Int?     // typical price for a single deliverable
+  priceList     String?  // JSON: { reel: 50000, story: 20000, ... }
+
+  // Compliance / payouts
+  gstStatus     String?  // REGISTERED | UNREGISTERED | NA
+  panNumber     String?
+  gstNumber     String?
+  bankName      String?
+  bankAccount   String?
+  bankIfsc      String?
+  managerName   String?
+  managerPhone  String?
+
+  // Onboarding & quality
+  // status: PENDING | IN_VERIFICATION | APPROVED | REJECTED
+  status         String  @default("PENDING")
+  onboardingStep Int     @default(0) // 0..4 self-onboarding progress
+  internalRating Float?  // 0..5 set by talent managers
+  notes          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  socials          SocialProfile[]
+  documents        CreatorDocument[]
+  campaignCreators CampaignCreator[]
+  deliverables     Deliverable[]
+  activities       Activity[]
+  payments         Payment[]
+  invoices         Invoice[]
+  contracts        Contract[]
+  noteItems        Note[]
+  portalUsers      User[]
+  proposalItems    ProposalCreator[]
+
+  @@index([status])
+}
+
+model SocialProfile {
+  id             String  @id @default(cuid())
+  creatorId      String
+  creator        Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  // platform: INSTAGRAM | YOUTUBE | FACEBOOK | MOJ | JOSH | SNAPCHAT | LINKEDIN
+  platform       String
+  handle         String
+  url            String?
+  followers      Int     @default(0)
+  avgViews       Int     @default(0)
+  engagementRate Float   @default(0)
+
+  @@index([creatorId])
+  @@index([platform])
+}
+
+model CreatorDocument {
+  id         String   @id @default(cuid())
+  creatorId  String
+  creator    Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  // type: PAN | GST | CONTRACT | AGREEMENT | BANK | INVOICE | KYC | OTHER
+  type       String
+  name       String
+  url        String?
+  verified   Boolean  @default(false)
+  uploadedAt DateTime @default(now())
+
+  @@index([creatorId])
+}
+
+// ----------------------------------------------------------------------------
+//  CAMPAIGN MANAGEMENT (Modules 5, 9, 14)
+// ----------------------------------------------------------------------------
+model Campaign {
+  id                String   @id @default(cuid())
+  name              String
+  brandId           String
+  brand             Brand    @relation(fields: [brandId], references: [id])
+  budget            Int      @default(0)
+  // platform: INSTAGRAM | YOUTUBE | MULTI | ...
+  platform          String?
+  targetAudience    String?
+  creatorRequirement String? // free text or JSON describing the brief
+  description       String?
+  // stage (pipeline): DRAFT | CREATOR_SELECTION | BRAND_APPROVAL |
+  //   CONTENT_PRODUCTION | POSTING | REPORTING | PAYMENT_CLOSURE | COMPLETED
+  stage             String   @default("DRAFT")
+  startDate         DateTime?
+  endDate           DateTime?
+
+  // Aggregate performance metrics (Module 14 reporting)
+  reach       Int @default(0)
+  impressions Int @default(0)
+  views       Int @default(0)
+  engagement  Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creators     CampaignCreator[]
+  deliverables Deliverable[]
+  tasks        Task[]
+  payments     Payment[]
+  invoices     Invoice[]
+  contracts    Contract[]
+  activities   Activity[]
+  noteItems    Note[]
+
+  @@index([brandId])
+  @@index([stage])
+}
+
+// Join: which creators are on a campaign + their per-campaign commercials/status
+model CampaignCreator {
+  id           String   @id @default(cuid())
+  campaignId   String
+  campaign     Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creatorId    String
+  creator      Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  // status: SHORTLISTED | PROPOSED | APPROVED | DECLINED | ACTIVE | COMPLETED
+  status       String   @default("SHORTLISTED")
+  agreedAmount Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@unique([campaignId, creatorId])
+  @@index([campaignId])
+  @@index([creatorId])
+}
+
+// ----------------------------------------------------------------------------
+//  CONTENT & APPROVAL WORKFLOW (Modules 7, 14) — replaces WhatsApp
+// ----------------------------------------------------------------------------
+model Deliverable {
+  id          String   @id @default(cuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creatorId   String?
+  creator     Creator? @relation(fields: [creatorId], references: [id])
+  // type: REEL | VIDEO | POST | STORY | SHORT | LIVE
+  type        String
+  title       String
+  // status: PENDING | SUBMITTED | INTERNAL_REVIEW | BRAND_REVIEW |
+  //   REVISION | APPROVED | POSTED
+  status      String   @default("PENDING")
+  dueDate     DateTime?
+  postedUrl   String?
+  postedAt    DateTime?
+
+  // Per-deliverable performance (Module 14)
+  views      Int @default(0)
+  likes      Int @default(0)
+  comments   Int @default(0)
+  shares     Int @default(0)
+  reach      Int @default(0)
+  impressions Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  submissions ContentSubmission[]
+  tasks       Task[]
+
+  @@index([campaignId])
+  @@index([creatorId])
+  @@index([status])
+}
+
+// Versioned content uploads (Version 1, 2, 3 ...) for the approval workflow
+model ContentSubmission {
+  id            String      @id @default(cuid())
+  deliverableId String
+  deliverable   Deliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+  version       Int         @default(1)
+  fileUrl       String?
+  thumbnailUrl  String?
+  caption       String?
+  // status: PENDING_REVIEW | INTERNAL_APPROVED | BRAND_APPROVED |
+  //   REVISION_REQUESTED | REJECTED
+  status        String      @default("PENDING_REVIEW")
+  submittedAt   DateTime    @default(now())
+
+  reviews ContentReview[]
+
+  @@index([deliverableId])
+}
+
+model ContentReview {
+  id           String            @id @default(cuid())
+  submissionId String
+  submission   ContentSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  reviewerId   String?
+  reviewer     User?             @relation(fields: [reviewerId], references: [id])
+  // side: INTERNAL | BRAND
+  side         String
+  // decision: APPROVED | REVISION | REJECTED
+  decision     String
+  comment      String?
+  createdAt    DateTime          @default(now())
+
+  @@index([submissionId])
+}
+
+// ----------------------------------------------------------------------------
+//  TASK MANAGEMENT (Module 6)
+// ----------------------------------------------------------------------------
+model Task {
+  id            String       @id @default(cuid())
+  title         String
+  description   String?
+  // type: OUTREACH | NEGOTIATION | CONTRACT | CONTENT_SUBMISSION |
+  //   CONTENT_APPROVAL | POSTING | REPORTING | INVOICE | FOLLOW_UP | OTHER
+  type          String       @default("OTHER")
+  // status: PENDING | IN_PROGRESS | WAITING_APPROVAL | COMPLETED | OVERDUE
+  status        String       @default("PENDING")
+  // priority: LOW | MEDIUM | HIGH | URGENT
+  priority      String       @default("MEDIUM")
+  dueDate       DateTime?
+  completedAt   DateTime?
+
+  campaignId    String?
+  campaign      Campaign?    @relation(fields: [campaignId], references: [id])
+  deliverableId String?
+  deliverable   Deliverable? @relation(fields: [deliverableId], references: [id])
+  assigneeId    String?
+  assignee      User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([assigneeId])
+  @@index([campaignId])
+}
+
+// ----------------------------------------------------------------------------
+//  PAYMENTS & INVOICES (Modules 11, 12)
+// ----------------------------------------------------------------------------
+model Payment {
+  id           String    @id @default(cuid())
+  // direction: CREATOR (we pay out) | BRAND (we collect)
+  direction    String
+  // status: PENDING | PARTIAL | PAID | OVERDUE
+  status       String    @default("PENDING")
+  agreedAmount Int       @default(0)
+  advanceAmount Int      @default(0)
+  paidAmount   Int       @default(0)
+  dueDate      DateTime?
+  paidDate     DateTime?
+  note         String?
+
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id])
+  brandId    String?
+  brand      Brand?    @relation(fields: [brandId], references: [id])
+  creatorId  String?
+  creator    Creator?  @relation(fields: [creatorId], references: [id])
+  invoiceId  String?
+  invoice    Invoice?  @relation(fields: [invoiceId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([direction])
+  @@index([status])
+}
+
+model Invoice {
+  id          String    @id @default(cuid())
+  number      String    @unique
+  // type: BRAND | CREATOR | GST
+  type        String
+  // status: DRAFT | SENT | PAID | OVERDUE | CANCELLED
+  status      String    @default("DRAFT")
+  amount      Int       @default(0)
+  taxRate     Float     @default(0)
+  taxAmount   Int       @default(0)
+  total       Int       @default(0)
+  items       String?   // JSON line items
+  issuedDate  DateTime?
+  dueDate     DateTime?
+
+  brandId    String?
+  brand      Brand?    @relation(fields: [brandId], references: [id])
+  creatorId  String?
+  creator    Creator?  @relation(fields: [creatorId], references: [id])
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id])
+
+  payments  Payment[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([status])
+}
+
+// ----------------------------------------------------------------------------
+//  CONTRACTS (Module 13)
+// ----------------------------------------------------------------------------
+model Contract {
+  id                  String    @id @default(cuid())
+  title               String
+  // type: CREATOR | BRAND | NDA | SOW
+  type                String
+  // status: DRAFT | SENT | SIGNED | EXPIRED
+  status              String    @default("DRAFT")
+  fileUrl             String?
+  signedDate          DateTime?
+  expiryDate          DateTime?
+  renewalReminderDate DateTime?
+
+  brandId    String?
+  brand      Brand?    @relation(fields: [brandId], references: [id])
+  creatorId  String?
+  creator    Creator?  @relation(fields: [creatorId], references: [id])
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([status])
+}
+
+// ----------------------------------------------------------------------------
+//  ACTIVITY TIMELINE (Modules 2, 3) — every interaction, anywhere
+// ----------------------------------------------------------------------------
+model Activity {
+  id         String   @id @default(cuid())
+  // type: EMAIL | CALL | MEETING | WHATSAPP | PROPOSAL | CAMPAIGN_LAUNCH |
+  //   PAYMENT | NOTE | STATUS_CHANGE | DOCUMENT
+  type       String
+  title      String
+  body       String?
+  occurredAt DateTime @default(now())
+
+  brandId    String?
+  brand      Brand?    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  creatorId  String?
+  creator    Creator?  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id])
+
+  @@index([brandId])
+  @@index([creatorId])
+  @@index([campaignId])
+}
+
+// ----------------------------------------------------------------------------
+//  INTERNAL NOTES (Module 17) — internal-only annotations on any entity
+// ----------------------------------------------------------------------------
+model Note {
+  id        String   @id @default(cuid())
+  body      String
+  pinned    Boolean  @default(false)
+
+  brandId    String?
+  brand      Brand?    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  creatorId  String?
+  creator    Creator?  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  authorId   String?
+  author     User?     @relation(fields: [authorId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([brandId])
+  @@index([creatorId])
+  @@index([campaignId])
+}
+
+// ----------------------------------------------------------------------------
+//  KNOWLEDGE CENTER (Module 16)
+// ----------------------------------------------------------------------------
+model KnowledgeAsset {
+  id        String   @id @default(cuid())
+  title     String
+  // category: MEDIA_KIT | PITCH_DECK | CASE_STUDY | CONTRACT_TEMPLATE |
+  //   RATE_CARD | CAMPAIGN_TEMPLATE | OTHER
+  category  String
+  url       String?
+  tags      String?  // JSON array
+  createdAt DateTime @default(now())
+
+  @@index([category])
+}
+
+// ----------------------------------------------------------------------------
+//  PROPOSAL BUILDER (Module 9) — creator shortlist with reach/cost projections
+// ----------------------------------------------------------------------------
+model Proposal {
+  id        String   @id @default(cuid())
+  title     String
+  // status: DRAFT | SHARED | ACCEPTED | DECLINED
+  status    String   @default("DRAFT")
+  brandId   String?
+  brand     Brand?   @relation(fields: [brandId], references: [id])
+  budget    Int      @default(0)
+  brief     String?
+  audience  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items ProposalCreator[]
+
+  @@index([status])
+  @@index([brandId])
+}
+
+model ProposalCreator {
+  id             String   @id @default(cuid())
+  proposalId     String
+  proposal       Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  creatorId      String
+  creator        Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  proposedAmount Int      @default(0)
+  deliverable    String?  // e.g. "1 Reel + 2 Stories"
+  fitScore       Int?     // AI Fit Score 0..100
+
+  @@unique([proposalId, creatorId])
+  @@index([proposalId])
+}

@@ -1,0 +1,8 @@
+# Never upload secrets or local-only artifacts to Vercel
+.env
+.env*.local
+node_modules
+.next
+prisma/dev.db
+prisma/dev.db-journal
+*.log

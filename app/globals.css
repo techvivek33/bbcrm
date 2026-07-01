@@ -67,3 +67,45 @@ body {
     @apply outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Print / "Download PDF" — keep cards and tables intact across page breaks,
+   print background colours, and drop the page tint so the PDF looks clean.
+--------------------------------------------------------------------------- */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* Page wrapper tint -> white; keep intentional subtle shading (e.g. /60). */
+  .bg-slate-50 {
+    background: #fff !important;
+  }
+  /* Never split a card, table row, or metric across two pages. */
+  .card,
+  tr,
+  thead,
+  tfoot,
+  dl {
+    break-inside: avoid;
+  }
+  .card {
+    box-shadow: none !important;
+  }
+  /* Don't strand a section heading at the bottom of a page. */
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+  /* Tighten vertical rhythm so short proposals fit on one page. */
+  main {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+}

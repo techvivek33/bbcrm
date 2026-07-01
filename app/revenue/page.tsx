@@ -154,7 +154,7 @@ export default async function RevenuePage() {
               }
             />
             <div className="card-pad">
-              <div className="flex items-end gap-3 sm:gap-5" style={{ height: "220px" }}>
+              <div className="flex items-stretch gap-3 sm:gap-5" style={{ height: "220px" }}>
                 {buckets.map((b) => {
                   const revH = Math.round((b.revenue / maxMonthly) * 100);
                   const costH = Math.round((b.cost / maxMonthly) * 100);

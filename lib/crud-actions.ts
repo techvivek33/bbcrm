@@ -303,3 +303,52 @@ export async function recordPayment(paymentId: string, amount: number) {
   revalidatePath("/payments");
   revalidatePath("/");
 }
+
+// --- Cold Call tracker (outbound leads + 6 follow-ups) ----------------------
+export async function createColdCall(fd: FormData) {
+  const cc = await prisma.coldCall.create({
+    data: {
+      name: reqStr(fd, "name"),
+      company: str(fd, "company"),
+      number: str(fd, "number"),
+      email: str(fd, "email"),
+      remarks: str(fd, "remarks"),
+      pitch: str(fd, "pitch"),
+      assignee: str(fd, "assignee"),
+      status: str(fd, "status") ?? "NEW",
+    },
+  });
+  revalidatePath("/cold-calls");
+  redirect(`/cold-calls/${cc.id}`);
+}
+
+export async function updateColdCall(fd: FormData) {
+  const id = reqStr(fd, "id");
+  await prisma.coldCall.update({
+    where: { id },
+    data: {
+      name: reqStr(fd, "name"),
+      company: str(fd, "company"),
+      number: str(fd, "number"),
+      email: str(fd, "email"),
+      remarks: str(fd, "remarks"),
+      pitch: str(fd, "pitch"),
+      assignee: str(fd, "assignee"),
+      status: str(fd, "status") ?? "NEW",
+      fu1Date: date(fd, "fu1Date"), fu1Note: str(fd, "fu1Note"),
+      fu2Date: date(fd, "fu2Date"), fu2Note: str(fd, "fu2Note"),
+      fu3Date: date(fd, "fu3Date"), fu3Note: str(fd, "fu3Note"),
+      fu4Date: date(fd, "fu4Date"), fu4Note: str(fd, "fu4Note"),
+      fu5Date: date(fd, "fu5Date"), fu5Note: str(fd, "fu5Note"),
+      fu6Date: date(fd, "fu6Date"), fu6Note: str(fd, "fu6Note"),
+    },
+  });
+  revalidatePath("/cold-calls");
+  revalidatePath(`/cold-calls/${id}`);
+}
+
+export async function deleteColdCall(id: string) {
+  await prisma.coldCall.delete({ where: { id } });
+  revalidatePath("/cold-calls");
+  redirect("/cold-calls");
+}

@@ -532,3 +532,38 @@ model ProposalCreator {
   @@unique([proposalId, creatorId])
   @@index([proposalId])
 }
+
+// ----------------------------------------------------------------------------
+//  COLD CALL TRACKER — outbound lead pipeline with up to 6 follow-ups each
+// ----------------------------------------------------------------------------
+model ColdCall {
+  id       String  @id @default(cuid())
+  name     String
+  company  String?
+  number   String?
+  email    String?
+  remarks  String?
+  pitch    String?
+  assignee String?
+  // status: NEW | INTERESTED | FOLLOW_UP | CONVERTED | NOT_INTERESTED
+  status   String  @default("NEW")
+
+  // Six fixed follow-ups, each a date + an update note.
+  fu1Date DateTime?
+  fu1Note String?
+  fu2Date DateTime?
+  fu2Note String?
+  fu3Date DateTime?
+  fu3Note String?
+  fu4Date DateTime?
+  fu4Note String?
+  fu5Date DateTime?
+  fu5Note String?
+  fu6Date DateTime?
+  fu6Note String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}

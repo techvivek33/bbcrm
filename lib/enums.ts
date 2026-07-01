@@ -108,6 +108,15 @@ export const CONTRACT_STATUS = {
   EXPIRED: { label: "Expired", tone: "red" },
 } as const satisfies Record<string, Meta>;
 
+// ---- Cold call lead status -------------------------------------------------
+export const COLD_CALL_STATUS = {
+  NEW: { label: "New", tone: "gray" },
+  INTERESTED: { label: "Interested", tone: "blue" },
+  FOLLOW_UP: { label: "Follow-up", tone: "amber" },
+  CONVERTED: { label: "Converted", tone: "green" },
+  NOT_INTERESTED: { label: "Not Interested", tone: "red" },
+} as const satisfies Record<string, Meta>;
+
 // ---- Activity types (Modules 2, 3) -----------------------------------------
 export const ACTIVITY_TYPE = {
   EMAIL: { label: "Email", tone: "blue" },

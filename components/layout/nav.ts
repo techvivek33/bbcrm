@@ -36,7 +36,7 @@ export const NAV: NavGroup[] = [
       { label: "Tasks", href: "/tasks", icon: "ListChecks", module: 6 },
       { label: "Content Approvals", href: "/approvals", icon: "CheckCircle2", module: 7 },
       { label: "Discovery Engine", href: "/discovery", icon: "Radar", module: 8 },
-      { label: "Proposal Builder", href: "/proposals", icon: "FileText", module: 9 },
+      { label: "Cold Calls", href: "/cold-calls", icon: "PhoneCall", module: 9 },
     ],
   },
   {

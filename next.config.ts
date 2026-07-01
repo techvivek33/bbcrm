@@ -2,7 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   experimental: {
-    // Server Actions are enabled by default in Next 15
+    // Allow larger spreadsheet uploads through the bulk-import server action.
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
   },
   typescript: {
     // We keep types strict; flip to true only if a build-blocking type

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Users, Star } from "lucide-react";
+import { Plus, Users, Star, Upload } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, LinkButton, EmptyState } from "@/components/ui/misc";
 import { Badge } from "@/components/ui/Badge";
@@ -33,9 +33,14 @@ export default async function CreatorsPage({
         title="Creator CRM"
         subtitle="Your influencer database — profiles, reach, performance & commercials."
         actions={
-          <LinkButton href="/creators/new">
-            <Plus className="h-4 w-4" /> Add Creator
-          </LinkButton>
+          <>
+            <LinkButton href="/creators/import" variant="secondary">
+              <Upload className="h-4 w-4" /> Bulk Import
+            </LinkButton>
+            <LinkButton href="/creators/new">
+              <Plus className="h-4 w-4" /> Add Creator
+            </LinkButton>
+          </>
         }
       />
 

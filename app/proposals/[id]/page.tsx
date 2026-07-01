@@ -8,6 +8,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { StatCard } from "@/components/ui/StatCard";
 import { Field } from "@/components/ui/misc";
 import { ProposalStatusActions } from "@/components/proposals/ProposalStatusActions";
+import { ProposalShare } from "@/components/proposals/ProposalShare";
 import { inr, compactNumber, fullNumber, percent, dateLong } from "@/lib/format";
 import type { BadgeTone } from "@/lib/enums";
 
@@ -83,7 +84,12 @@ export default async function ProposalDetail({ params }: { params: Promise<{ id:
             {dateLong(proposal.createdAt)}
           </p>
         </div>
-        <ProposalStatusActions proposalId={proposal.id} status={proposal.status} />
+        <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:items-end">
+          <ProposalStatusActions proposalId={proposal.id} status={proposal.status} />
+          <div className="w-full sm:flex sm:justify-end">
+            <ProposalShare proposalId={proposal.id} publicId={proposal.publicId} />
+          </div>
+        </div>
       </div>
 
       {/* Headline metrics */}

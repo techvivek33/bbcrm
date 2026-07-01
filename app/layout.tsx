@@ -18,9 +18,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const pathname = (await headers()).get("x-pathname") ?? "";
   const isLogin = pathname === "/login" || pathname.startsWith("/login/");
   const isPortal = pathname.startsWith("/portal");
+  // Public share links (/p/<token>) render bare and require no auth.
+  const isPublicShare = pathname === "/p" || pathname.startsWith("/p/");
 
-  // Login: bare canvas.
-  if (isLogin) {
+  // Login & public share pages: bare canvas, no auth lookup.
+  if (isLogin || isPublicShare) {
     return (
       <html lang="en">
         <body className="min-h-screen">{children}</body>

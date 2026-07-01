@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { Send, CheckCircle2, XCircle, Printer } from "lucide-react";
+import { CheckCircle2, XCircle, Printer } from "lucide-react";
 import { updateProposalStatus } from "@/lib/crud-actions";
 import { cn } from "@/lib/utils";
 
@@ -49,7 +49,6 @@ export function ProposalStatusActions({
 
   return (
     <div className="flex flex-wrap items-center gap-2 print:hidden">
-      {btn("Share", <Send className="h-4 w-4" />, "primary", () => setStatus("SHARED"), status === "SHARED")}
       {btn("Mark Accepted", <CheckCircle2 className="h-4 w-4" />, "green", () => setStatus("ACCEPTED"), status === "ACCEPTED")}
       {btn("Mark Declined", <XCircle className="h-4 w-4" />, "red", () => setStatus("DECLINED"), status === "DECLINED")}
       <button

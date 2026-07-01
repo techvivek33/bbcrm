@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -258,6 +259,33 @@ export async function createProposal(fd: FormData) {
 
 export async function updateProposalStatus(proposalId: string, status: string) {
   await prisma.proposal.update({ where: { id: proposalId }, data: { status } });
+  revalidatePath("/proposals");
+  revalidatePath(`/proposals/${proposalId}`);
+}
+
+/** Generate an unguessable public share link for a proposal (idempotent). */
+export async function enableProposalShare(proposalId: string) {
+  const existing = await prisma.proposal.findUnique({
+    where: { id: proposalId },
+    select: { publicId: true, status: true },
+  });
+  if (!existing) return;
+  const publicId = existing.publicId ?? randomBytes(9).toString("base64url");
+  await prisma.proposal.update({
+    where: { id: proposalId },
+    data: {
+      publicId,
+      // Sharing implies the proposal has left Draft.
+      status: existing.status === "DRAFT" ? "SHARED" : existing.status,
+    },
+  });
+  revalidatePath("/proposals");
+  revalidatePath(`/proposals/${proposalId}`);
+}
+
+/** Revoke the public link — old URLs stop working immediately. */
+export async function disableProposalShare(proposalId: string) {
+  await prisma.proposal.update({ where: { id: proposalId }, data: { publicId: null } });
   revalidatePath("/proposals");
   revalidatePath(`/proposals/${proposalId}`);
 }

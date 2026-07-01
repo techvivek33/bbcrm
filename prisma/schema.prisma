@@ -507,6 +507,9 @@ model Proposal {
   budget    Int      @default(0)
   brief     String?
   audience  String?
+  // Unguessable public share token. When set, the proposal is viewable at
+  // /p/<publicId> without login; clearing it revokes the link.
+  publicId  String?  @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

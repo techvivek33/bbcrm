@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 const SESSION_COOKIE = "aos_session";
-const PUBLIC_PREFIXES = ["/login"];
+// "/p" = public proposal share links (no login required).
+const PUBLIC_PREFIXES = ["/login", "/p"];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

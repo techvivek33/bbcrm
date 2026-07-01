@@ -23,13 +23,16 @@ export function CreatorImport() {
             rows with your creators (keep the header row), then save as <code>.xlsx</code> or
             <code> .csv</code>.
           </p>
-          <Link
+          {/* Plain anchor (not next/link): a route handler that streams a file
+              must be hit with a full-navigation GET, otherwise the client
+              router does an RSC fetch and the host returns 405. */}
+          <a
             href="/creators/import/template"
-            prefetch={false}
+            download="agency-os-creators-template.xlsx"
             className="focus-ring inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700"
           >
             <Download className="h-4 w-4" /> Download Template (.xlsx)
-          </Link>
+          </a>
         </div>
       </Card>
 

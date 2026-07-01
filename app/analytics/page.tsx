@@ -5,7 +5,14 @@ import { PageHeader, EmptyState } from "@/components/ui/misc";
 import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { inr, compactNumber, percent } from "@/lib/format";
+import { DonutChart, type DonutSlice } from "@/components/charts/DonutChart";
+import { inr, compactNumber, percent, fullNumber } from "@/lib/format";
+import { parseList } from "@/lib/serialize";
+
+const CATEGORY_PALETTE = [
+  "#6366f1", "#0ea5e9", "#f59e0b", "#22c55e", "#ec4899", "#8b5cf6",
+  "#ef4444", "#14b8a6", "#eab308", "#f97316", "#06b6d4", "#a855f7",
+];
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +98,31 @@ export default async function AnalyticsPage() {
   const maxBrandRevenue = brandRows.reduce((m, b) => Math.max(m, b.revenue), 0);
   const totalBrandRevenue = brandRows.reduce((s, b) => s + b.revenue, 0);
 
+  // ---- Pie: campaign budget allocation by brand ----------------------------
+  const budgetByBrand = new Map<string, { name: string; color: string; budget: number }>();
+  for (const c of campaigns) {
+    if (!c.brand) continue;
+    const cur = budgetByBrand.get(c.brand.id) ?? { name: c.brand.companyName, color: c.brand.logoColor, budget: 0 };
+    cur.budget += c.budget;
+    budgetByBrand.set(c.brand.id, cur);
+  }
+  const brandBudgetSlices: DonutSlice[] = Array.from(budgetByBrand.values())
+    .filter((b) => b.budget > 0)
+    .sort((a, b) => b.budget - a.budget)
+    .map((b) => ({ label: b.name, value: b.budget, color: b.color }));
+  const totalBudget = brandBudgetSlices.reduce((s, b) => s + b.value, 0);
+
+  // ---- Pie: creator roster mix by category ---------------------------------
+  const categoryCount = new Map<string, number>();
+  for (const cr of creators) {
+    for (const cat of parseList(cr.categories)) {
+      categoryCount.set(cat, (categoryCount.get(cat) ?? 0) + 1);
+    }
+  }
+  const categorySlices: DonutSlice[] = Array.from(categoryCount.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([label, value], i) => ({ label, value, color: CATEGORY_PALETTE[i % CATEGORY_PALETTE.length] }));
+
   return (
     <div>
       <PageHeader
@@ -104,6 +136,28 @@ export default async function AnalyticsPage() {
         <StatCard label="Total Impressions" value={compactNumber(totals.impressions)} sub="Served to audiences" icon={<Eye className="h-5 w-5" />} tone="blue" />
         <StatCard label="Total Views" value={compactNumber(totals.views)} sub="Video & content plays" icon={<Play className="h-5 w-5" />} tone="cyan" />
         <StatCard label="Total Engagement" value={compactNumber(totals.engagement)} sub="Likes, comments, shares" icon={<Heart className="h-5 w-5" />} tone="pink" />
+      </div>
+
+      {/* Distribution pies */}
+      <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader title="Campaign Budget by Brand" subtitle="Share of committed spend across accounts" />
+          <DonutChart
+            data={brandBudgetSlices}
+            centerValue={inr(totalBudget, { compact: true })}
+            centerLabel="Total"
+            formatValue={(v) => inr(v, { compact: true })}
+          />
+        </Card>
+        <Card>
+          <CardHeader title="Creator Mix by Category" subtitle="Distribution of your roster's niches" />
+          <DonutChart
+            data={categorySlices}
+            centerValue={fullNumber(creators.length)}
+            centerLabel="Creators"
+            formatValue={(v) => `${v}`}
+          />
+        </Card>
       </div>
 
       {/* Campaign reports */}

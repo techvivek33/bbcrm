@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader, LinkButton, EmptyState } from "@/components/ui/misc";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
+import { LinkRow } from "@/components/ui/LinkRow";
 import { Toolbar } from "@/components/ui/Toolbar";
 import { inr, compactNumber, percent } from "@/lib/format";
 import { meta, CREATOR_STATUS } from "@/lib/enums";
@@ -74,7 +75,7 @@ export default async function CreatorsPage({
                 const s = meta(CREATOR_STATUS, c.status);
                 const cats = parseList(c.categories);
                 return (
-                  <tr key={c.id} className="hover-row">
+                  <LinkRow key={c.id} href={`/creators/${c.id}`}>
                     <td className="px-5 py-3">
                       <Link href={`/creators/${c.id}`} className="flex items-center gap-3">
                         <Avatar name={c.name} color={c.avatarColor} size="md" />
@@ -101,7 +102,7 @@ export default async function CreatorsPage({
                     <td className="hidden px-5 py-3 text-right text-slate-600 sm:table-cell">{percent(c.engagementRate)}</td>
                     <td className="hidden px-5 py-3 text-right font-semibold text-slate-700 lg:table-cell">{c.basePrice ? inr(c.basePrice, { compact: true }) : "—"}</td>
                     <td className="px-5 py-3"><Badge tone={s.tone} dot>{s.label}</Badge></td>
-                  </tr>
+                  </LinkRow>
                 );
               })}
             </tbody>

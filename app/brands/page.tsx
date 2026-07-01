@@ -3,6 +3,7 @@ import { Plus, Building2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, LinkButton, EmptyState } from "@/components/ui/misc";
 import { Badge } from "@/components/ui/Badge";
+import { LinkRow } from "@/components/ui/LinkRow";
 import { Toolbar } from "@/components/ui/Toolbar";
 import { inr } from "@/lib/format";
 import { meta, BRAND_STATUS } from "@/lib/enums";
@@ -73,7 +74,7 @@ export default async function BrandsPage({
                 const cats = parseList(b.preferredCategories);
                 const portfolio = b.campaigns.reduce((sum, c) => sum + c.budget, 0);
                 return (
-                  <tr key={b.id} className="hover-row">
+                  <LinkRow key={b.id} href={`/brands/${b.id}`}>
                     <td className="px-5 py-3">
                       <Link href={`/brands/${b.id}`} className="flex items-center gap-3">
                         <span
@@ -106,7 +107,7 @@ export default async function BrandsPage({
                     <td className="px-5 py-3">
                       <Badge tone={s.tone} dot>{s.label}</Badge>
                     </td>
-                  </tr>
+                  </LinkRow>
                 );
               })}
             </tbody>

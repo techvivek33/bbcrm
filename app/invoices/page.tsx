@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader, LinkButton, EmptyState } from "@/components/ui/misc";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
+import { LinkRow } from "@/components/ui/LinkRow";
 import { Toolbar } from "@/components/ui/Toolbar";
 import { inr, dateShort } from "@/lib/format";
 import { meta, INVOICE_STATUS } from "@/lib/enums";
@@ -97,7 +98,7 @@ export default async function InvoicesPage({
                 const s = meta(INVOICE_STATUS, inv.status);
                 const party = inv.brand?.companyName ?? inv.creator?.name ?? "—";
                 return (
-                  <tr key={inv.id} className="hover-row">
+                  <LinkRow key={inv.id} href={`/invoices/${inv.id}`}>
                     <td className="px-5 py-3">
                       <Link href={`/invoices/${inv.id}`} className="font-semibold text-slate-900 hover:text-brand-600">
                         {inv.number}
@@ -111,7 +112,7 @@ export default async function InvoicesPage({
                     <td className="hidden px-5 py-3 text-slate-500 md:table-cell">{dateShort(inv.dueDate)}</td>
                     <td className="px-5 py-3 text-right font-semibold text-slate-800">{inr(inv.total)}</td>
                     <td className="px-5 py-3"><Badge tone={s.tone} dot>{s.label}</Badge></td>
-                  </tr>
+                  </LinkRow>
                 );
               })}
             </tbody>

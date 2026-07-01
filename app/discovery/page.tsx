@@ -5,6 +5,7 @@ import { PageHeader, EmptyState } from "@/components/ui/misc";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
+import { LinkRow } from "@/components/ui/LinkRow";
 import { DiscoveryFilters } from "@/components/discovery/DiscoveryFilters";
 import { inr, compactNumber, percent } from "@/lib/format";
 import { parseList } from "@/lib/serialize";
@@ -189,7 +190,7 @@ export default async function DiscoveryPage({
             </thead>
             <tbody className="divide-y divide-slate-100">
               {scored.map(({ creator: c, fit }) => (
-                <tr key={c.id} className="hover-row">
+                <LinkRow key={c.id} href={`/creators/${c.id}`}>
                   <td className="px-5 py-3">
                     <Link href={`/creators/${c.id}`} className="flex items-center gap-3">
                       <Avatar name={c.name} color={c.avatarColor} size="md" />
@@ -233,7 +234,7 @@ export default async function DiscoveryPage({
                       {fit}
                     </Badge>
                   </td>
-                </tr>
+                </LinkRow>
               ))}
             </tbody>
           </table>

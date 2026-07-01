@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader, LinkButton, EmptyState } from "@/components/ui/misc";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
+import { LinkRow } from "@/components/ui/LinkRow";
 import { Toolbar } from "@/components/ui/Toolbar";
 import { dateShort, daysUntil } from "@/lib/format";
 import { meta, CONTRACT_STATUS } from "@/lib/enums";
@@ -101,7 +102,7 @@ export default async function ContractsPage({
                 const expDays = daysUntil(c.expiryDate);
                 const expiryWarn = expDays !== null && expDays < 30 && c.status !== "EXPIRED";
                 return (
-                  <tr key={c.id} className="hover-row">
+                  <LinkRow key={c.id} href={`/contracts/${c.id}`}>
                     <td className="px-5 py-3">
                       <Link href={`/contracts/${c.id}`} className="font-semibold text-slate-900 hover:text-brand-600">
                         {c.title}
@@ -123,7 +124,7 @@ export default async function ContractsPage({
                       )}
                     </td>
                     <td className="hidden px-5 py-3 text-slate-500 md:table-cell">{dateShort(c.renewalReminderDate)}</td>
-                  </tr>
+                  </LinkRow>
                 );
               })}
             </tbody>
